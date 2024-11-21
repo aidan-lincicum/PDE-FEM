@@ -1,5 +1,6 @@
 from numpy import *
 from matplotlib import pyplot as plt
+from scipy.sparse import coo_matrix
 from scipy.spatial import Delaunay, delaunay_plot_2d
 from numpy.linalg import norm
 
@@ -35,6 +36,7 @@ y3 = yy[keep].reshape(-1)
 xtri, ytri = hstack((x1,x2,x3)),hstack((y1,y2,y3))
 
 de = Delaunay(stack((xtri,ytri)).T)
+neighbors = de.neighbors
 triangles = de.points[de.simplices,:]
 centroids = triangles.sum(axis=1)/3
 keep = centroids[:,1] < -0.6+0.25*centroids[:,0]**2
@@ -60,5 +62,28 @@ grads2,areas2 = mygrad(triangles[:,1],triangles[:,2],triangles[:,0])
 grads3,areas3 = mygrad(triangles[:,2],triangles[:,0],triangles[:,1])
 j1,j2,j3 = de.simplices[:,0], de.simplices[:,1],de.simplices[:,2]
 
+def find_neighbors(pindex, triang):
+    return triang.vertex_neighbor_vertices[1][triang.vertex_neighbor_vertices[0][pindex]:triang.vertex_neighbor_vertices[0][pindex+1]]
+
+
 # from scipy.sparse import coo_matrix
-# A = coo_matrix(((grads1*grads1).sum(axis=-1),(j1,j1)),shape=())
+A1 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j1,j1)),shape=(len(triangles), len(triangles)))
+A2 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j1,j2)),shape=(len(triangles), len(triangles)))
+A3 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j1,j3)),shape=(len(triangles), len(triangles)))
+A4 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j2,j1)),shape=(len(triangles), len(triangles)))
+A5 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j2,j2)),shape=(len(triangles), len(triangles)))
+A6 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j2,j3)),shape=(len(triangles), len(triangles)))
+A7 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j3,j1)),shape=(len(triangles), len(triangles)))
+A8 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j3,j2)),shape=(len(triangles), len(triangles)))
+A9 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j3,j3)),shape=(len(triangles), len(triangles)))
+K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
+print(K)
+#K = zeros((len(triangles), len(triangles)))
+#for i in range(len(de.simplices)):
+##    neighbors = find_neighbors(i, )
+ #   for n in range(len(neighbors)):
+
+
+
+
+
