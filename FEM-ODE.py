@@ -104,6 +104,6 @@ for i in range(2,103):
 print(error)
 
 fig,ax = plt.subplots()
-ax.plot(range(2,103),error)
+ax.semilogy(range(2,103),error)
 ax.grid()
 plt.show()

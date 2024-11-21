@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix
 from scipy.spatial import Delaunay, delaunay_plot_2d
 from numpy.linalg import norm
+from scipy.sparse.linalg import spsolve
 
 #Create region
 fig,ax = plt.subplots()
@@ -62,28 +63,26 @@ grads2,areas2 = mygrad(triangles[:,1],triangles[:,2],triangles[:,0])
 grads3,areas3 = mygrad(triangles[:,2],triangles[:,0],triangles[:,1])
 j1,j2,j3 = de.simplices[:,0], de.simplices[:,1],de.simplices[:,2]
 
-def find_neighbors(pindex, triang):
-    return triang.vertex_neighbor_vertices[1][triang.vertex_neighbor_vertices[0][pindex]:triang.vertex_neighbor_vertices[0][pindex+1]]
-
-
+pts = len(de.points)
 # from scipy.sparse import coo_matrix
-A1 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j1,j1)),shape=(len(triangles), len(triangles)))
-A2 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j1,j2)),shape=(len(triangles), len(triangles)))
-A3 = coo_matrix((((grads1[:,0] * grads1[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j1,j3)),shape=(len(triangles), len(triangles)))
-A4 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j2,j1)),shape=(len(triangles), len(triangles)))
-A5 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j2,j2)),shape=(len(triangles), len(triangles)))
-A6 = coo_matrix((((grads2[:,0] * grads2[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j2,j3)),shape=(len(triangles), len(triangles)))
-A7 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads1[:, 1] * grads1[:,1]) * areas1).sum(axis=-1),(j3,j1)),shape=(len(triangles), len(triangles)))
-A8 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads2[:, 1] * grads2[:,1]) * areas1).sum(axis=-1),(j3,j2)),shape=(len(triangles), len(triangles)))
-A9 = coo_matrix((((grads3[:,0] * grads3[:,0] + grads3[:, 1] * grads3[:,1]) * areas1).sum(axis=-1),(j3,j3)),shape=(len(triangles), len(triangles)))
+A1 = coo_matrix(((grads1 * grads1).sum(axis=-1)*areas1,(j1,j1)),shape=(pts,pts))
+A2 = coo_matrix(((grads1 * grads2).sum(axis=-1)*areas1,(j1,j2)),shape=(pts,pts))
+A3 = coo_matrix(((grads1 * grads3).sum(axis=-1)*areas1,(j1,j3)),shape=(pts,pts))
+A4 = coo_matrix(((grads2 * grads1).sum(axis=-1)*areas1,(j2,j1)),shape=(pts,pts))
+A5 = coo_matrix(((grads2 * grads2).sum(axis=-1)*areas1,(j2,j2)),shape=(pts,pts))
+A6 = coo_matrix(((grads2 * grads3).sum(axis=-1)*areas1,(j2,j3)),shape=(pts,pts))
+A7 = coo_matrix(((grads3 * grads1).sum(axis=-1)*areas1,(j3,j1)),shape=(pts,pts))
+A8 = coo_matrix(((grads3 * grads2).sum(axis=-1)*areas1,(j3,j2)),shape=(pts,pts))
+A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
-print(K)
-#K = zeros((len(triangles), len(triangles)))
-#for i in range(len(de.simplices)):
-##    neighbors = find_neighbors(i, )
- #   for n in range(len(neighbors)):
 
+b = zeros(pts)
+# Poisson f(x) = 1 Doesn't work
+for i in range(0,len(triangles)):
+    volume = areas1[i]/3
+    b[de.simplices[i,0]] += volume
+    b[de.simplices[i,1]] += volume
+    b[de.simplices[i,2]] += volume
 
-
-
-
+c = spsolve(K,b)
+print(c)
