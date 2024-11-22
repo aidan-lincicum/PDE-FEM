@@ -2,7 +2,7 @@ from numpy import *
 from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix
 from scipy.spatial import Delaunay, delaunay_plot_2d
-from numpy.linalg import norm
+from numpy.linalg import norm, solve
 from scipy.sparse.linalg import spsolve
 
 #Create region
@@ -46,7 +46,9 @@ triangles = de.points[de.simplices,:]
 fig, ax = plt.subplots()
 delaunay_plot_2d(de,ax=ax)
 ax.set_aspect("equal")
-
+for j in range(xtri.size):
+    ax.text(xtri[j],ytri[j],j)
+fig.savefig("numberedgrid.png")
 #Find gradient of the triangles
 def mygrad(a,b,c):
     p = c-b
@@ -76,6 +78,8 @@ A8 = coo_matrix(((grads3 * grads2).sum(axis=-1)*areas1,(j3,j2)),shape=(pts,pts))
 A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
 
+Knew = K.toarray()[41:,41:]
+
 b = zeros(pts)
 # Poisson f(x) = 1 Doesn't work
 for i in range(0,len(triangles)):
@@ -84,5 +88,20 @@ for i in range(0,len(triangles)):
     b[de.simplices[i,1]] += volume
     b[de.simplices[i,2]] += volume
 
-c = spsolve(K,b)
+b = b[41:]
+
+c = solve(Knew,b)
+areas1.sort()
 print(c)
+
+c = hstack((zeros(41),c))
+
+from matplotlib import tri
+
+mytri = tri.Triangulation(de.points[:,0],de.points[:,1],de.simplices)
+
+from scipy.linalg import eig
+o1,o2, = eig(K.toarray())
+fig,ax = plt.subplots()
+ax.tricontourf(mytri, c)
+fig.savefig("hi.png")
