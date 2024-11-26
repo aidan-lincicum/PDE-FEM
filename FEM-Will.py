@@ -5,6 +5,9 @@ from scipy.spatial import Delaunay, delaunay_plot_2d
 from numpy.linalg import norm, solve
 from scipy.sparse.linalg import spsolve
 
+#Constants
+num_points = 41
+
 #Create region
 fig,ax = plt.subplots()
 y0 = -2+sqrt(3.85)
@@ -16,18 +19,18 @@ ax.plot([x0,-x0],[y0,y0],'ro')
 ax.set_aspect("equal")
 
 # upper edge
-x1 = linspace(-x0,x0,20)
+x1 = linspace(-x0,x0,int(num_points/2))
 y1 = -0.6+0.25*x1**2 
 
 # lower edge
-th = linspace(pi,2*pi,23)
+th = linspace(pi,2*pi,int(num_points/2 + 2))
 x2 = 1.5*cos(th)
 y2 = 1.5*sin(th)
 x2 = x2[y2<y0]
 y2 = y2[y2<y0]
 
 # grid in interior
-xx,yy = meshgrid(linspace(-1.5,1.5,21),linspace(-2.05,0.95,21))
+xx,yy = meshgrid(linspace(-1.5,1.5,int(num_points/2)),linspace(-2.05,0.95,int(num_points/2)))
 xx[::2,:] += 0.5*3/20
 keep = logical_and(xx**2+yy**2<1.43**2, yy<-0.66+0.25*xx**2)
 
@@ -78,23 +81,31 @@ A8 = coo_matrix(((grads3 * grads2).sum(axis=-1)*areas1,(j3,j2)),shape=(pts,pts))
 A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
 
-Knew = K.toarray()[41:,41:]
+Knew = K.toarray()[num_points:,num_points:]
 
 b = zeros(pts)
-# Poisson f(x) = 1 Doesn't work
 for i in range(0,len(triangles)):
-    volume = areas1[i]/3
+    volume = 4*areas1[i]/3
     b[de.simplices[i,0]] += volume
     b[de.simplices[i,1]] += volume
     b[de.simplices[i,2]] += volume
 
-b = b[41:]
+b = b[num_points:]
+
+def upper_boundary(x,y):
+    return cos(x)
+
+boundary_matrix = K.toarray()[num_points:,0:num_points]
+boundary_vector = zeros(num_points)
+boundary_vector[0:int(num_points/2)] = upper_boundary(de.points[0:int(num_points/2),0], de.points[0:int(num_points/2),1])
+
+b -= dot(boundary_matrix, boundary_vector)
 
 c = solve(Knew,b)
 areas1.sort()
 print(c)
 
-c = hstack((zeros(41),c))
+c = hstack((boundary_vector,c))
 
 from matplotlib import tri
 
@@ -104,4 +115,6 @@ from scipy.linalg import eig
 o1,o2, = eig(K.toarray())
 fig,ax = plt.subplots()
 ax.tricontourf(mytri, c)
-fig.savefig("hi.png")
+ax = plt.figure().add_subplot(projection='3d')
+ax.plot_trisurf(mytri, c, linewidth=0.2, antialiased=True)
+plt.show()
