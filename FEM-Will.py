@@ -6,7 +6,7 @@ from numpy.linalg import norm, solve
 from scipy.sparse.linalg import spsolve
 
 #Constants
-num_points = 41
+num_points = 202
 
 #Create region
 fig,ax = plt.subplots()
@@ -81,25 +81,34 @@ A8 = coo_matrix(((grads3 * grads2).sum(axis=-1)*areas1,(j3,j2)),shape=(pts,pts))
 A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
 
-Knew = K.toarray()[num_points:,num_points:]
+Knew = K.toarray()[int(num_points/2):,int(num_points/2):]
 
 b = zeros(pts)
-for i in range(0,len(triangles)):
-    volume = 4*areas1[i]/3
-    b[de.simplices[i,0]] += volume
-    b[de.simplices[i,1]] += volume
-    b[de.simplices[i,2]] += volume
+# for i in range(0,len(triangles)):
+#     volume = 4*areas1[i]/3
+#     b[de.simplices[i,0]] += volume
+#     b[de.simplices[i,1]] += volume
+#     b[de.simplices[i,2]] += volume
 
-b = b[num_points:]
+b = b[int(num_points/2):]
 
 def upper_boundary(x,y):
-    return cos(x)
+    return abs(x)
 
-boundary_matrix = K.toarray()[num_points:,0:num_points]
-boundary_vector = zeros(num_points)
+boundary_matrix = K.toarray()[int(num_points/2):,0:int(num_points/2)]
+boundary_vector = zeros(int(num_points/2))
 boundary_vector[0:int(num_points/2)] = upper_boundary(de.points[0:int(num_points/2),0], de.points[0:int(num_points/2),1])
 
 b -= dot(boundary_matrix, boundary_vector)
+
+point1 = de.points[int(num_points/2)]
+print(point1)
+point2 = de.points[int(num_points/2) + 1]
+length = norm(point1 - point2) * 0
+neumann_vector = zeros(pts-(int(num_points/2)))
+neumann_vector[0:int(num_points/2)] = length
+
+b += neumann_vector
 
 c = solve(Knew,b)
 areas1.sort()
