@@ -5,7 +5,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 image_files = []
 
-for img_number in range(300): 
+for img_number in range(1000): 
     image_files.append('imgs/fig' + str(img_number) + '.png') 
 
 fps = 30

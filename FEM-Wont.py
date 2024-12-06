@@ -119,10 +119,10 @@ for i in range(pts):
 ic = ic[int(num_points):]
 
 def solver(t, vec):
-    return matmul(Minv, matmul(-Knew, vec))
+    return dot(Minv, dot(-Knew, vec))
 
 tend = 0.05
-t_pts = 300
+t_pts = 1000
 t = linspace(0, tend, t_pts)
 y1 = solve_ivp(solver, [0, tend], ic, t_eval = t, atol = 1e-9, rtol = 1e-9)
 assert y1.success
