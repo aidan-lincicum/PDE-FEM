@@ -8,7 +8,7 @@ from scipy.sparse.linalg import spsolve
 from PIL import Image, ImageOps
 
 #Constants
-num_points = 500
+num_points = 50
 xmin = -1.5
 xmax = 1.5
 ymin = -1.5
@@ -111,20 +111,38 @@ im2 = ImageOps.grayscale(im1)
 numpydata = asarray(im2)
 
 dim = numpydata.shape
+# ic = zeros(pts)
+# for i in range(pts):
+#     xpos = int(de.points[i,0]/(xmax - xmin)*dim[0] - xmin/(xmax - xmin)*dim[0])
+#     ypos = int(de.points[i,1]/(ymin - ymax)*dim[1] - ymin/(ymin - ymax)*dim[1])
+#     ic[i] = numpydata[ypos,xpos]
+# ic = ic[int(num_points):]
+# ic = concatenate((ic, zeros(len(ic))))
+
+def icfunc(x, y):
+    return x + y
+
 ic = zeros(pts)
 for i in range(pts):
-    xpos = int(de.points[i,0]/(xmax - xmin)*dim[0] - xmin/(xmax - xmin)*dim[0])
-    ypos = int(de.points[i,1]/(ymin - ymax)*dim[1] - ymin/(ymin - ymax)*dim[1])
-    ic[i] = numpydata[ypos,xpos]
-ic = ic[int(num_points):]
+    ic[i] = icfunc(de.points[i, 0], de.points[i, 1])
+ic = ic[num_points:]
+ic = concatenate((ic, zeros(len(ic))))
 
-def solver(t, vec):
+
+def heat_solver(t, vec):
     return dot(Minv, dot(-Knew, vec))
 
-tend = 0.05
-t_pts = 1000
+def wave_solver(t, vec):
+    vec_len = len(vec)
+    avec = vec[0:int(vec_len/2)]
+    vvec = vec[int(vec_len/2):vec_len]
+    vvec_dot = dot(Minv, dot(-Knew, avec))
+    return(concatenate((vvec, vvec_dot)))
+
+tend = 10
+t_pts = 300
 t = linspace(0, tend, t_pts)
-y1 = solve_ivp(solver, [0, tend], ic, t_eval = t, atol = 1e-9, rtol = 1e-9)
+y1 = solve_ivp(wave_solver, [0, tend], ic, t_eval = t, atol = 1e-9, rtol = 1e-9)
 assert y1.success
 
 # Plot
@@ -137,11 +155,11 @@ mytri = tri.Triangulation(de.points[:,0],de.points[:,1],de.simplices)
 # plt.colorbar(ax, cax=cax, cmap="summer")
 for i in range(t_pts):
     fig,ax = plt.subplots()
-    c = y1.y[:,i]
+    c = y1.y[0:int(y1.y.shape[0]/2),i]
     c = hstack((zeros(int(num_points)),c))
     # ax = plt.figure().add_subplot(projection='3d')
     # ax.plot_trisurf(mytri, c, linewidth=0.2, antialiased=True)
-    ax.tricontourf(mytri, c, levels = linspace(-0.01,256,20))
+    ax.tricontourf(mytri, c, levels = linspace(-3,3,20))
     #fig.colorbar(pl)
 
     # ax.set_zlim(-1.5,1)
