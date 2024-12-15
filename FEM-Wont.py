@@ -159,7 +159,7 @@ for i in range(t_pts):
     c = hstack((zeros(int(num_points)),c))
     # ax = plt.figure().add_subplot(projection='3d')
     # ax.plot_trisurf(mytri, c, linewidth=0.2, antialiased=True)
-    ax.tricontourf(mytri, c, levels = linspace(-3,3,20))
+    ax.tricontourf(mytri, c, levels = linspace(-3,3,40))
     #fig.colorbar(pl)
 
     # ax.set_zlim(-1.5,1)

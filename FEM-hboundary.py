@@ -58,16 +58,11 @@ de = Delaunay(stack((xtri,ytri)).T)
 neighbors = de.neighbors
 triangles = de.points[de.simplices,:]
 centroids = triangles.sum(axis=1)/3
-keep = logical_or(logical_or(logical_and(logical_and(centroids[:,0]>-3,centroids[:,0]<-0.5), logical_and(centroids[:,1]>-2,centroids[:,1]<2)), \
-                             logical_and(logical_and(centroids[:,0]>0.5,centroids[:,0]<3), logical_and(centroids[:,1]>-2,centroids[:,1]<2))), \
-                             logical_and(logical_and(centroids[:,0]>-0.5,centroids[:,0]<0.5), logical_and(centroids[:,1]>-0.25,centroids[:,1]<0.25)))
+keep = logical_or(logical_or(logical_and(logical_and(centroids[:,0]>=-3,centroids[:,0]<=-0.5), logical_and(centroids[:,1]>=-2,centroids[:,1]<=2)), \
+                             logical_and(logical_and(centroids[:,0]>=0.5,centroids[:,0]<=3), logical_and(centroids[:,1]>=-2,centroids[:,1]<=2))), \
+                             logical_and(logical_and(centroids[:,0]>=-0.5,centroids[:,0]<=0.5), logical_and(centroids[:,1]>=-0.25,centroids[:,1]<=0.25)))
 de.simplices = de.simplices[keep,:]
 triangles = de.points[de.simplices,:]
-fig, ax = plt.subplots()
-delaunay_plot_2d(de,ax=ax)
-ax.set_aspect("equal")
-
-fig.savefig("numberedgrid.png")
 
 def mygrad(a,b,c):
     p = c-b
@@ -117,7 +112,7 @@ im2 = ImageOps.grayscale(im1)
 
 numpydata = asarray(im2)
 def icfunc(x, y):
-    return x + y
+    return 1 if x < -0.5 else 0
 
 ic = zeros(pts)
 for i in range(pts):
@@ -150,7 +145,7 @@ for i in range(t_pts):
     fig,ax = plt.subplots()
     c = y1.y[0:int(y1.y.shape[0]/2),i]
     c = hstack((zeros(int(num_points)),c))
-    ax.tricontourf(mytri, c, levels = linspace(-3,3,20))
+    ax.tricontourf(mytri, c, levels = linspace(-1,2,40))
 
     fig.savefig("imgs/fig"+str(i)+".png")
     plt.close(fig)
