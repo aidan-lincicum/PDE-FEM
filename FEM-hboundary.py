@@ -1,3 +1,4 @@
+# Wave equation solver on weirder region
 from numpy import *
 from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
@@ -13,7 +14,6 @@ xmin = -1.5
 xmax = 1.5
 ymin = -1.5
 ymax = 0
-
 
 #Create region
 fig,ax = plt.subplots()
@@ -44,16 +44,14 @@ y12 = linspace(-2,2,40)
 
 # grid in interior
 xx,yy = meshgrid(linspace(-2.95,2.95,60),linspace(-1.95,1.95,40))
-
 keep = logical_or(logical_or(logical_and(logical_and(xx>-3,xx<-0.5), logical_and(yy>-2,yy<2)), \
                              logical_and(logical_and(xx>0.5,xx<3), logical_and(yy>-2,yy<2))), \
                              logical_and(logical_and(xx>-0.5,xx<0.5), logical_and(yy>-0.25,yy<0.25)))
-
 x13 = xx[keep].reshape(-1)
 y13 = yy[keep].reshape(-1)
-
 xtri, ytri = hstack((x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)),hstack((y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13))
 
+# Create triangulation
 de = Delaunay(stack((xtri,ytri)).T)
 neighbors = de.neighbors
 triangles = de.points[de.simplices,:]
@@ -64,6 +62,7 @@ keep = logical_or(logical_or(logical_and(logical_and(centroids[:,0]>=-3,centroid
 de.simplices = de.simplices[keep,:]
 triangles = de.points[de.simplices,:]
 
+# Calculate gradients
 def mygrad(a,b,c):
     p = c-b
     q = a-b
@@ -73,12 +72,12 @@ def mygrad(a,b,c):
     gradphi = r/rn[:,None]**2
     area = 0.5*rn*norm(p,axis=-1)
     return gradphi,area
-
 grads1,areas1 = mygrad(triangles[:,0],triangles[:,1],triangles[:,2])
 grads2,areas2 = mygrad(triangles[:,1],triangles[:,2],triangles[:,0])
 grads3,areas3 = mygrad(triangles[:,2],triangles[:,0],triangles[:,1])
 j1,j2,j3 = de.simplices[:,0], de.simplices[:,1], de.simplices[:,2]
 
+# Create K matrix
 pts = len(de.points)
 A1 = coo_matrix(((grads1 * grads1).sum(axis=-1)*areas1,(j1,j1)),shape=(pts,pts))
 A2 = coo_matrix(((grads1 * grads2).sum(axis=-1)*areas1,(j1,j2)),shape=(pts,pts))
@@ -92,6 +91,7 @@ A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
 Knew = K.toarray()[int(num_points):,int(num_points):]
 
+# Create M matrix
 M = zeros((pts, pts))
 for i in range(0, len(j1)):
     M[j1[i], j1[i]] += areas1[i] / 6
@@ -103,27 +103,19 @@ for i in range(0, len(j1)):
     M[j3[i], j1[i]] += areas1[i] / 12
     M[j3[i], j2[i]] += areas1[i] / 12
     M[j3[i], j3[i]] += areas1[i] / 6
-
 Mnew = M[int(num_points):, int(num_points):]
 Minv = inv(Mnew)
 
-im1 = Image.open("imgs/cat.jpg")
-im2 = ImageOps.grayscale(im1)
-
-numpydata = asarray(im2)
+# Define initial conditions
 def icfunc(x, y):
     return 1 if x < -0.5 else 0
-
 ic = zeros(pts)
 for i in range(pts):
     ic[i] = icfunc(de.points[i, 0], de.points[i, 1])
 ic = ic[num_points:]
 ic = concatenate((ic, zeros(len(ic))))
 
-
-def heat_solver(t, vec):
-    return dot(Minv, dot(-Knew, vec))
-
+#a'' = M^{-1}(-Ka)
 def wave_solver(t, vec):
     vec_len = len(vec)
     avec = vec[0:int(vec_len/2)]
@@ -140,12 +132,10 @@ assert y1.success
 # Plot
 from matplotlib import tri
 mytri = tri.Triangulation(de.points[:,0],de.points[:,1],de.simplices)
-
 for i in range(t_pts):
     fig,ax = plt.subplots()
     c = y1.y[0:int(y1.y.shape[0]/2),i]
     c = hstack((zeros(int(num_points)),c))
     ax.tricontourf(mytri, c, levels = linspace(-1,2,40))
-
     fig.savefig("imgs/fig"+str(i)+".png")
     plt.close(fig)

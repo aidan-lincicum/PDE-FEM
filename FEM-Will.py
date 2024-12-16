@@ -1,3 +1,4 @@
+# Laplace Equation Solver
 from numpy import *
 from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix
@@ -5,10 +6,10 @@ from scipy.spatial import Delaunay, delaunay_plot_2d
 from numpy.linalg import norm, solve
 from scipy.sparse.linalg import spsolve
 
-#Constants
+# Constants
 num_points = 202
 
-#Create region
+# Create region
 fig,ax = plt.subplots()
 y0 = -2+sqrt(3.85)
 x0 = sqrt(4*y0+2.4)
@@ -39,6 +40,7 @@ y3 = yy[keep].reshape(-1)
 
 xtri, ytri = hstack((x1,x2,x3)),hstack((y1,y2,y3))
 
+# Create Triangulation
 de = Delaunay(stack((xtri,ytri)).T)
 neighbors = de.neighbors
 triangles = de.points[de.simplices,:]
@@ -52,7 +54,8 @@ ax.set_aspect("equal")
 for j in range(xtri.size):
     ax.text(xtri[j],ytri[j],j)
 fig.savefig("numberedgrid.png")
-#Find gradient of the triangles
+
+# Find gradient of the triangles
 def mygrad(a,b,c):
     p = c-b
     q = a-b
@@ -62,12 +65,12 @@ def mygrad(a,b,c):
     gradphi = r/rn[:,None]**2
     area = 0.5*rn*norm(p,axis=-1)
     return gradphi,area 
-
 grads1,areas1 = mygrad(triangles[:,0],triangles[:,1],triangles[:,2])
 grads2,areas2 = mygrad(triangles[:,1],triangles[:,2],triangles[:,0])
 grads3,areas3 = mygrad(triangles[:,2],triangles[:,0],triangles[:,1])
 j1,j2,j3 = de.simplices[:,0], de.simplices[:,1],de.simplices[:,2]
 
+# Create K matrix
 pts = len(de.points)
 # from scipy.sparse import coo_matrix
 A1 = coo_matrix(((grads1 * grads1).sum(axis=-1)*areas1,(j1,j1)),shape=(pts,pts))
@@ -80,10 +83,12 @@ A7 = coo_matrix(((grads3 * grads1).sum(axis=-1)*areas1,(j3,j1)),shape=(pts,pts))
 A8 = coo_matrix(((grads3 * grads2).sum(axis=-1)*areas1,(j3,j2)),shape=(pts,pts))
 A9 = coo_matrix(((grads3 * grads3).sum(axis=-1)*areas1,(j3,j3)),shape=(pts,pts))
 K = A1 + A2 + A3 + A4 + A5 + A6 + A7 + A8 + A9
-
 Knew = K.toarray()[int(num_points/2):,int(num_points/2):]
 
+# Create b vector
 b = zeros(pts)
+
+# Forcing term
 # for i in range(0,len(triangles)):
 #     volume = 4*areas1[i]/3
 #     b[de.simplices[i,0]] += volume
@@ -92,34 +97,32 @@ b = zeros(pts)
 
 b = b[int(num_points/2):]
 
+# Dirichlet boundary conditions
 def upper_boundary(x,y):
     return abs(x)
-
 boundary_matrix = K.toarray()[int(num_points/2):,0:int(num_points/2)]
 boundary_vector = zeros(int(num_points/2))
 boundary_vector[0:int(num_points/2)] = upper_boundary(de.points[0:int(num_points/2),0], de.points[0:int(num_points/2),1])
-
 b -= dot(boundary_matrix, boundary_vector)
 
+# Neumann boundary conditions
 point1 = de.points[int(num_points/2)]
 print(point1)
 point2 = de.points[int(num_points/2) + 1]
 length = norm(point1 - point2) * 0
 neumann_vector = zeros(pts-(int(num_points/2)))
 neumann_vector[0:int(num_points/2)] = length
-
 b += neumann_vector
 
+# Solve Kx=b
 c = solve(Knew,b)
 areas1.sort()
 print(c)
-
 c = hstack((boundary_vector,c))
 
+# Create plots
 from matplotlib import tri
-
 mytri = tri.Triangulation(de.points[:,0],de.points[:,1],de.simplices)
-
 from scipy.linalg import eig
 o1,o2, = eig(K.toarray())
 fig,ax = plt.subplots()
