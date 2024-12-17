@@ -4,7 +4,7 @@ import math
 import scipy.integrate as integrate
 
 def f(x):
-    return(0)
+    return(math.cos(x))
 
 def real(x):
     return(1/(np.cos(3)*3)*(np.sin(3*x) + 6*np.cos(3-3*x)))
@@ -13,8 +13,8 @@ def first_order(start, end, pts):
     h = (end-start)/pts
 
     #ODE of form au'+ bu = f(x)
-    a = 1
-    b = 1
+    a = 4
+    b = 3
 
     #u(0) = ic
     ic = 1
@@ -79,13 +79,13 @@ def second_order(start, end, pts):
     q = np.insert(q,0,ic1)
     return(q)
 
-# q = first_order(0,10,3)
-# x = np.linspace(0,10,3+1)
-# xreal = np.linspace(0,10,1000)
-# y = real(xreal)
+q = first_order(0,10,50)
+x = np.linspace(0,10,50+1)
+xreal = np.linspace(0,10,1000)
+y = real(xreal)
 
-q = second_order(0,10,1000)
-x = np.linspace(0,10,1000+1)
+# q = second_order(0,10,1000)
+# x = np.linspace(0,10,1000+1)
 
 fig,ax = plt.subplots()
 ax.plot(x,q)

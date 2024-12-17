@@ -9,7 +9,7 @@ from scipy.sparse.linalg import spsolve
 from PIL import Image, ImageOps
 
 # Constants
-num_points = 200
+num_points = 301
 xmin = -1.5
 xmax = 1.5
 ymin = -1.5
@@ -51,10 +51,15 @@ de = Delaunay(stack((xtri,ytri)).T)
 neighbors = de.neighbors
 triangles = de.points[de.simplices,:]
 centroids = triangles.sum(axis=1)/3
-keep = centroids[:,1] < -0.6+0.25*centroids[:,0]**2
+keep = centroids[:,1] <= -0.66+0.25*centroids[:,0]**2
 de.simplices = de.simplices[keep,:]
 triangles = de.points[de.simplices,:]
-
+fig, ax = plt.subplots()
+delaunay_plot_2d(de,ax=ax)
+ax.set_aspect("equal")
+for j in range(xtri.size):
+    ax.text(xtri[j],ytri[j],j)
+plt.show()
 # Find gradient of the triangles
 def mygrad(a,b,c):
     p = c-b
@@ -100,28 +105,28 @@ for i in range(0, len(j1)):
 Mnew = M[int(num_points):, int(num_points):]
 Minv = inv(Mnew)
 
-# Create image as initial conditions
-# im1 = Image.open("imgs/cat.jpg")
-# im2 = ImageOps.grayscale(im1)
-# numpydata = asarray(im2)
-# dim = numpydata.shape
-# ic = zeros(pts)
-# for i in range(pts):
-#     xpos = int(de.points[i,0]/(xmax - xmin)*dim[0] - xmin/(xmax - xmin)*dim[0])
-#     ypos = int(de.points[i,1]/(ymin - ymax)*dim[1] - ymin/(ymin - ymax)*dim[1])
-#     ic[i] = numpydata[ypos,xpos]
-# ic = ic[int(num_points):]
+#Create image as initial conditions
+im1 = Image.open("imgs/cat.jpg")
+im2 = ImageOps.grayscale(im1)
+numpydata = asarray(im2)
+dim = numpydata.shape
+ic = zeros(pts)
+for i in range(pts):
+    xpos = int(de.points[i,0]/(xmax - xmin)*dim[0] - xmin/(xmax - xmin)*dim[0])
+    ypos = int(de.points[i,1]/(ymin - ymax)*dim[1] - ymin/(ymin - ymax)*dim[1])
+    ic[i] = numpydata[ypos,xpos]
+ic = ic[int(num_points):]
 # ic = concatenate((ic, zeros(len(ic))))
 
 
-# Create function as initial conditions
-def icfunc(x, y):
-    return x + y
-ic = zeros(pts)
-for i in range(pts):
-    ic[i] = icfunc(de.points[i, 0], de.points[i, 1])
-ic = ic[num_points:]
-ic = concatenate((ic, zeros(len(ic))))
+# # Create function as initial conditions
+# def icfunc(x, y):
+#     return x + y
+# ic = zeros(pts)
+# for i in range(pts):
+#     ic[i] = icfunc(de.points[i, 0], de.points[i, 1])
+# ic = ic[num_points:]
+# ic = concatenate((ic, zeros(len(ic))))
 
 # a' = M^{-1}(-Ka)
 def heat_solver(t, vec):
@@ -137,10 +142,10 @@ def wave_solver(t, vec):
     return(concatenate((vvec, vvec_dot)))
 
 # ODE Solver
-tend = 30
-t_pts = 900
+tend = 0.1
+t_pts = 500
 t = linspace(0, tend, t_pts)
-y1 = solve_ivp(wave_solver, [0, tend], ic, t_eval = t, atol = 1e-9, rtol = 1e-9)
+y1 = solve_ivp(heat_solver, [0, tend], ic, t_eval = t, atol = 1e-9, rtol = 1e-9)
 assert y1.success
 
 # Plot
@@ -150,11 +155,11 @@ mytri = tri.Triangulation(de.points[:,0],de.points[:,1],de.simplices)
 # plt.colorbar(ax, cax=cax, cmap="summer")
 for i in range(t_pts):
     fig,ax = plt.subplots()
-    c = y1.y[0:int(y1.y.shape[0]/2),i]
-    c = hstack((zeros(int(num_points)),c))
+    c = y1.y[:,i]#[0:int(y1.y.shape[0]/2),i]
+    c = hstack((zeros(int(num_points+1)),c))
     # ax = plt.figure().add_subplot(projection='3d')
     # ax.plot_trisurf(mytri, c, linewidth=0.2, antialiased=True)
-    ax.tricontourf(mytri, c, levels = linspace(-3,3,40))
+    ax.tricontourf(mytri, c, levels = linspace(0.1,256,40))
     #fig.colorbar(pl)
     # ax.set_zlim(-1.5,1)
     fig.savefig("imgs/fig"+str(i)+".png")
